@@ -17,21 +17,88 @@ resource "azurerm_resource_group" "vmss" {
   tags     = "${var.tags}"
 }
 
-/*  
-data "template_file" "cloudconfig" {
-  template = "${file("${var.cloudconfig_file}")}"
+data "azurerm_subscription" "current" {}
+
+resource "azurerm_resource_group" "test" {
+  name     = "${var.pl_rg}"
+  location = "${var.pl_location}"
 }
 
-data "template_cloudinit_config" "config" {
-  gzip          = true
-  base64_encode = true
+ resource "azurerm_virtual_network" "test" {
+    name                = "${var.pl_vnet}"
+    address_space       = ["${var.pl_vnet_addr_space}"]
+    location            = "${azurerm_resource_group.test.location}"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
 
-  part {
-    content_type = "text/cloud-config"
-    content      = "${data.template_file.cloudconfig.rendered}"
+ resource "azurerm_subnet" "test" {
+    name                 = "${var.pl_subnet}"
+    resource_group_name  = "${azurerm_resource_group.test.name}"
+    virtual_network_name = "${azurerm_virtual_network.test.name}"
+    address_prefix       = "${var.pl_subnet_prefix}"
+    private_link_service_network_policies = "${var.pl_net_policy}"
+    private_endpoint_network_policies = "${var.pe_net_policy}"
+}
+
+ resource "azurerm_public_ip" "test" {
+    name                = "${var.pl_public_ip}"
+    sku                 = "${var.pl_public_ip_sku}"
+    location            = "${azurerm_resource_group.test.location}"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    allocation_method   = "${var.pl_public_ip_alloc}"
+}
+
+ resource "azurerm_lb" "test" {
+    name                = "${var.pl_lb}"
+    sku                 = "${var.pl_lb_sku}"
+    location            = "${azurerm_resource_group.test.location}"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    frontend_ip_configuration {
+        name                 = "${azurerm_public_ip.test.name}"
+        public_ip_address_id = "${azurerm_public_ip.test.id}"
+    }
+}
+
+resource "azurerm_private_endpoint" "test" {
+  name                = "${var.pe_name}"
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  subnet_id           = "${azurerm_subnet.test.id}"
+  tags = {
+    env = "test"
+    version = "2"
+  }
+
+ manual_private_link_service_connections {
+    name = "${var.pl_service_connection}"
+    private_link_service_id = "${azurerm_private_link_service.test.id}"
+    request_message         = "Please approve my connection."
   }
 }
-*/
+
+resource "azurerm_private_link_service" "test" {
+   name = "${var.pl_service}"
+   location = "${azurerm_resource_group.test.location}"
+   resource_group_name = "${azurerm_resource_group.test.name}"
+   fqdns = ["testFqdns"]
+   ip_configuration {
+     name = "${azurerm_public_ip.test.name}"
+     subnet_id = "${azurerm_subnet.test.id}"
+     private_ip_address = "${var.pl_service_pvt_ip}"
+     private_ip_address_version = "${var.pl_service_pvt_ip_version}"
+     private_ip_address_allocation = "${var.pl_service_pvt_ip_alloc}"
+   }
+   load_balancer_frontend_ip_configuration {
+      id = "${azurerm_lb.test.frontend_ip_configuration.0.id}"
+   }
+   tags = {
+     env = "test"
+     version = "2"
+   }
+}
+  
+  
+  
 resource "azurerm_virtual_machine_scale_set" "vm-linux" {
   count               = "${var.nb_instance}"
   name                = "${var.vmscaleset_name}"
