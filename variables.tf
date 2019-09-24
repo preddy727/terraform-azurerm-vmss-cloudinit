@@ -105,6 +105,12 @@ variable "tags" {
   }
 }
 
+/*
 variable "cloudconfig_file" {
   description = "The location of the cloud init configuration file."
+}
+*/
+ 
+variable "custom_data" {
+  description = "The rendered cloud init file."
 }
