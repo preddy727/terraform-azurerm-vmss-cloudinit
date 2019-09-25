@@ -11,17 +11,15 @@ module "os" {
   vm_os_simple = "${var.vm_os_simple}"
 }
 
-resource "azurerm_resource_group" "vmss" {
+data "azurerm_resource_group" "vmss" {
   name     = "${var.resource_group_name}"
-  location = "${var.location}"
-  tags     = "${var.tags}"
 }
 
 resource "azurerm_virtual_machine_scale_set" "vm-linux" {
   count               = "${var.nb_instance}"
   name                = "${var.vmscaleset_name}"
   location            = "${var.location}"
-  resource_group_name = "${azurerm_resource_group.vmss.name}"
+  resource_group_name = "${data.azurerm_resource_group.vmss.name}"
   upgrade_policy_mode = "Manual"
   tags                = "${var.tags}"
 
