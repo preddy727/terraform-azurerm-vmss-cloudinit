@@ -3,14 +3,6 @@ variable "resource_group_name" {
   default     = "vmssrg"
 }
 
-variable "virtual_network_name" {
-  description = "The name of the virtual network where the scaleset will reside"
-}
-
-variable "subnet_name" {
-  description = "The name of the subnet where the scaleset will reside"
-}
-
 variable "location" {
   description = "The location where the resources will be created"
   default     = ""
